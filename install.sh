@@ -2,7 +2,7 @@
 
 GITHUB_REPO="mperkins808/lyrical"
 BINARY_NAME="lyrical"
-TAG="0.0.1"
+TAG="0.0.2"
 BINARY_URL="https://github.com/$GITHUB_REPO/releases/download/$TAG/$BINARY_NAME"
 
 TEMP_DIR=$(mktemp -d)

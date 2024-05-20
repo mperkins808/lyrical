@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -75,6 +76,12 @@ func main() {
 	}
 
 	history := make([]string, 0)
+	existing, err := LoadSongs(*dir)
+	if err == nil {
+		for _, track := range existing {
+			history = append(history, track.Name)
+		}
+	}
 
 	sortedTracks, _, err = fetchLyrics(sortedTracks, history)
 	if err != nil {
@@ -100,6 +107,7 @@ func fetchLyrics(sortedTracks []SortedTrack, history []string) ([]SortedTrack, [
 	newTracks := make([]SortedTrack, 0)
 	for _, track := range sortedTracks {
 		if contains(newHistory, track.Name) {
+			log.Printf("skipping lyric fetch for %s", track.Name)
 			continue
 		}
 
@@ -255,6 +263,52 @@ func getSpotifyAppCreds(i string, s string) (string, string) {
 	}
 
 	return id, secret
+}
+
+func LoadSongs(dir string) ([]SortedTrack, error) {
+	var allSongs []SortedTrack
+
+	// Read the directory
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	// Iterate over each file in the directory
+	for _, file := range files {
+		if !file.IsDir() && filepath.Ext(file.Name()) == ".json" {
+			filePath := filepath.Join(dir, file.Name())
+			jsonFile, err := os.Open(filePath)
+			if err != nil {
+				log.Printf("Error opening file %s: %v\n", filePath, err)
+				continue
+			}
+
+			// Read the JSON file
+			byteValue, err := ioutil.ReadAll(jsonFile)
+			if err != nil {
+				log.Printf("Error reading file %s: %v\n", filePath, err)
+				jsonFile.Close()
+				continue
+			}
+
+			var songs []SortedTrack
+			err = json.Unmarshal(byteValue, &songs)
+			if err != nil {
+				log.Printf("Error unmarshalling JSON from file %s: %v\n", filePath, err)
+				jsonFile.Close()
+				continue
+			}
+
+			// Append the songs to the aggregate slice
+			allSongs = append(allSongs, songs...)
+
+			// Close the JSON file
+			jsonFile.Close()
+		}
+	}
+
+	return allSongs, nil
 }
 
 func createSpotifyClient(ctx context.Context, clientID string, clientSecret string) (*spotify.Client, error) {

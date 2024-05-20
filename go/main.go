@@ -87,6 +87,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	sortedTracks = append(sortedTracks, existing...)
 	SaveJson(*artist, *dir, sortedTracks)
 
 }
